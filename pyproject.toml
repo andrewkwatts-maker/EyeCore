@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "eyecore"
+version = "1.0.0a0"
+description = "Shared foundation — DB, graph, corpus, and LLM primitives for the Eyes of Azrael library suite"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Andrew Watts", email = "andrewkwatts@gmail.com"},
+]
+keywords = ["database", "knowledge-graph", "corpus", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+[project.optional-dependencies]
+llm-ollama  = ["ollama>=0.1"]
+llm-cpp     = ["llama-cpp-python>=0.2"]
+llm-openai  = ["openai>=1.0"]
+llm         = ["ollama>=0.1", "openai>=1.0", "llama-cpp-python>=0.2"]
+corpus      = ["requests>=2.28"]
+feed        = ["feedparser>=6.0", "requests>=2.28", "beautifulsoup4>=4.12"]
+test        = ["pytest>=7.0", "pytest-cov>=4.0"]
+
+[project.urls]
+Homepage = "https://github.com/EyesOfAzrael/eyecore"
+Repository = "https://github.com/EyesOfAzrael/eyecore"
+Issues = "https://github.com/EyesOfAzrael/eyecore/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eyecore"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
