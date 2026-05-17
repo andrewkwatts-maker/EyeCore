@@ -16,8 +16,11 @@ jobs:
         with:
           python-version: '3.11'
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install maturin and build
-        run: pip install maturin && maturin develop
+      - name: Build wheel
+        run: |
+          pip install maturin
+          maturin build --out dist
+          pip install dist/*.whl
       - name: Run tests
         run: pip install pytest && pytest tests/ -q
 
