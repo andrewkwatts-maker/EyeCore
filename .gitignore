@@ -5,5 +5,8 @@ __pycache__/
 *.egg-info/
 .eggs/
 build/
+dist/
+target/
+Cargo.lock
 .env
 .venv/

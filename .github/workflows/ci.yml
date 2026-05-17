@@ -20,7 +20,7 @@ jobs:
         run: |
           pip install maturin
           maturin build --out dist
-          pip install dist/*.whl
+          pip install --no-index --find-links dist eyecore
       - name: Run tests
         run: pip install pytest && pytest tests/ -q
 
