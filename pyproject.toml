@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "eyecore"
-version = "1.0.0a0"
+version = "1.0.0"
 description = "Shared foundation — DB, graph, corpus, and LLM primitives for the Eyes of Azrael library suite"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -14,7 +14,7 @@ authors = [
 ]
 keywords = ["database", "knowledge-graph", "corpus", "llm"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",

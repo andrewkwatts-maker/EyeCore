@@ -71,7 +71,7 @@ from ._feed_store import (
 from ._feed_scraper import add_source, remove_source, load_sources, scrape_all
 from ._feed_report import cluster_by_keyword, cluster_with_llm, generate_topic_report, generate_daily_reports
 
-__version__ = "1.0.0a0"
+__version__ = "1.0.0"
 
 __all__ = [
     "BaseDB",
