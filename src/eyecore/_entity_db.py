@@ -1,7 +1,7 @@
 """EntityDB — base class for baked SQLite entity databases.
 
-All consumer packages (azrael, synomosia-entities, etc.) subclass this and pass
-their own app_name and gz_path so the pattern is not repeated in each package.
+Consumer packages subclass this and pass their own app_name and gz_path so the
+pattern is not repeated in each package.
 """
 from __future__ import annotations
 

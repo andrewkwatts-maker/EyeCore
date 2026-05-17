@@ -1,9 +1,8 @@
 """
 eyecore.corpus_registry — shared corpus registration framework.
 
-Each library registers its own corpus lists at import time:
+Consumer packages register their own corpus lists at import time:
 
-    # In azrael/_corpus_registry.py:
     from eyecore import corpus_registry
     corpus_registry.register("mythology", MYTHOLOGY_CORPUSES)
 

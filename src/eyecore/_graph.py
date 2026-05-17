@@ -33,8 +33,8 @@ CREATE INDEX IF NOT EXISTS idx_links_to   ON topic_links(to_id);
 class TopicGraph:
     """Generalized topic registry graph embedded in any eyecore SQLite database.
 
-    All 4 libs (azrael, apocrypha, clio, augur) share this class unchanged.
-    The schema uses fully generic `topics` and `topic_links` tables — no lib-specific columns.
+    Fully generic — the schema uses plain `topics` and `topic_links` tables with no
+    consumer-specific columns, making it reusable across any eyecore-based package.
     """
 
     def __init__(self, db: sqlite3.Connection) -> None:

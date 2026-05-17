@@ -12,7 +12,7 @@ class BaseDB:
 
     Two modes:
     - *Baked* (gz_path provided): decompresses to user cache on first `.conn` access.
-    - *Live* (db_path provided): connects directly to the given path (augur-style).
+    - *Live* (db_path provided): connects directly to the given path.
     """
 
     def __init__(

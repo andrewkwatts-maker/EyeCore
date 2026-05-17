@@ -1,6 +1,6 @@
 # eyecore
 
-Shared foundation for the a range pypi data repositories — SQLite DB management, topic graph, corpus management, and LLM integration.
+Core data retrieval and organisation library — SQLite DB management, topic graph, corpus management, and LLM integration.
 
 ## Features
 

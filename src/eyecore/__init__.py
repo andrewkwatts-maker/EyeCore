@@ -1,5 +1,5 @@
 """
-eyecore — Shared foundation for the Eyes of Azrael library suite.
+eyecore — Core data retrieval and organisation library.
 
 Provides:
   BaseDB        — lazy SQLite connection with transparent gz decompression
@@ -12,7 +12,6 @@ Provides:
   decompress_to_cache — decompress .db.gz to user cache on first use
 
 Corpus registry (shared reference texts, usable by any module):
-  from eyecore.corpus_registry import MYTHOLOGY_CORPUSES, ESOTERIC_CORPUSES
   from eyecore.corpus_registry import ALL_CORPUSES, get_by_topic, get_by_id
 
 Feed infrastructure (requires eyecore[feed]):
