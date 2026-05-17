@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
 
 [project]
 name = "eyecore"
@@ -41,8 +41,10 @@ Homepage = "https://github.com/EyesOfAzrael/eyecore"
 Repository = "https://github.com/EyesOfAzrael/eyecore"
 Issues = "https://github.com/EyesOfAzrael/eyecore/issues"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/eyecore"]
+[tool.maturin]
+python-source = "src"
+module-name = "eyecore._core"
+features = ["pyo3/extension-module"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

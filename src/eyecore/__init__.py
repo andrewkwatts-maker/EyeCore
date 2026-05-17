@@ -22,6 +22,38 @@ Feed infrastructure (requires eyecore[feed]):
 """
 from __future__ import annotations
 
+try:
+    from ._core import sha256_hex, score_text, fuzzy_match as _fuzzy_match
+    _RUST_CORE = True
+except ImportError:
+    _RUST_CORE = False
+
+    def sha256_hex(data: bytes) -> str:
+        h: int = 5381
+        for b in data:
+            h = ((h * 33) + b) & 0xFFFFFFFFFFFFFFFF
+        return format(h, "016x")
+
+    def score_text(haystack: str, query: str) -> float:
+        h, q = haystack.lower(), query.lower()
+        if not q:
+            return 0.0
+        if h.startswith(q):
+            return 1000.0
+        if q in h:
+            return 500.0
+        return 0.0
+
+    def _fuzzy_match(text: str, pattern: str) -> bool:
+        qi = iter(pattern)
+        pc = next(qi, None)
+        for tc in text:
+            if tc == pc:
+                pc = next(qi, None)
+                if pc is None:
+                    return True
+        return pc is None
+
 from ._compress import cache_dir, compress_db, decompress_to_cache
 from ._db import BaseDB
 from ._graph import TopicGraph, GRAPH_SCHEMA
@@ -70,4 +102,5 @@ __all__ = [
     "generate_topic_report",
     "generate_daily_reports",
     "__version__",
+    "_RUST_CORE",
 ]

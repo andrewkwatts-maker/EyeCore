@@ -1,0 +1,11 @@
+[package]
+name = "eyecore-core"
+version = "1.0.0-alpha.0"
+edition = "2021"
+
+[lib]
+name = "_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
