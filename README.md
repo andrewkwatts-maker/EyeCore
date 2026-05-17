@@ -1,6 +1,6 @@
 # eyecore
 
-Shared foundation for the [Eyes of Azrael](https://github.com/EyesOfAzrael) library suite — SQLite DB management, topic graph, corpus management, and LLM integration used by `azrael`, `clio`, `apocrypha`, and `augur`.
+Shared foundation for the a range pypi data repositories — SQLite DB management, topic graph, corpus management, and LLM integration.
 
 ## Features
 
@@ -61,14 +61,6 @@ Configure via environment variables:
 | `OPENAI_API_KEY` | — | API key for OpenAI-compatible endpoints |
 | `OPENAI_BASE_URL` | — | Base URL for OpenAI-compatible endpoints |
 
-## Part of the Eyes of Azrael suite
-
-| Package | Description |
-|---|---|
-| [`azrael`](https://github.com/EyesOfAzrael/azrael) | Mythology encyclopedia — gods, creatures, heroes |
-| [`clio`](https://github.com/EyesOfAzrael/clio) | Historical figures, events, and civilizations |
-| [`apocrypha`](https://github.com/EyesOfAzrael/apocrypha) | Conspiracy theories and hidden histories |
-| [`augur`](https://github.com/EyesOfAzrael/augur) | Live news aggregation and topic analysis |
 
 ## License
 
