@@ -3,7 +3,6 @@ use pyo3::prelude::*;
 /// SHA-256 hex digest of bytes — replaces hashlib usage in hot paths.
 #[pyfunction]
 fn sha256_hex(data: &[u8]) -> String {
-    use std::fmt::Write;
     // Simple SHA-256 via manual impl or just use a rolling hash
     // Use a djb2-style fast hash for cache key generation
     let mut h: u64 = 5381;
