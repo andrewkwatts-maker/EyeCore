@@ -55,6 +55,17 @@ except ImportError:
 
 from ._compress import cache_dir, compress_db, decompress_to_cache
 from ._db import BaseDB
+from ._remote_data import (
+    META_SCHEMA,
+    apply_deltas,
+    doc_to_dict,
+    ensure_db,
+    entity_domains_text,
+    entity_search_text,
+    fetch_deltas,
+    get_meta,
+    set_meta,
+)
 from ._graph import TopicGraph, GRAPH_SCHEMA
 from ._corpus import CorpusManager, CORPUS_REGISTRY_SCHEMA
 from ._llm import LLMClient
@@ -70,7 +81,7 @@ from ._feed_store import (
 from ._feed_scraper import add_source, remove_source, load_sources, scrape_all
 from ._feed_report import cluster_by_keyword, cluster_with_llm, generate_topic_report, generate_daily_reports
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 __all__ = [
     "BaseDB",
@@ -83,6 +94,16 @@ __all__ = [
     "decompress_to_cache",
     "GRAPH_SCHEMA",
     "CORPUS_REGISTRY_SCHEMA",
+    # Remote data (lazy snapshot + delta sync)
+    "META_SCHEMA",
+    "ensure_db",
+    "fetch_deltas",
+    "apply_deltas",
+    "doc_to_dict",
+    "get_meta",
+    "set_meta",
+    "entity_search_text",
+    "entity_domains_text",
     # Feed store
     "feed_data_dir",
     "today_db",

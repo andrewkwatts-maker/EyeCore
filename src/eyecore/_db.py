@@ -20,24 +20,34 @@ class BaseDB:
         app_name: str,
         gz_path: Path | None = None,
         db_path: Path | None = None,
+        remote_url: str | None = None,
+        remote_sha256: str | None = None,
     ) -> None:
         if gz_path is None and db_path is None:
             raise ValueError("Provide either gz_path or db_path")
         self._app_name = app_name
         self._gz_path = gz_path
         self._db_path = db_path
+        self._remote_url = remote_url
+        self._remote_sha256 = remote_sha256
         self._conn: sqlite3.Connection | None = None
 
     @property
     def conn(self) -> sqlite3.Connection:
         if self._conn is None:
             if self._gz_path is not None:
-                if not self._gz_path.exists():
+                gz = self._gz_path
+                if not gz.exists() and self._remote_url is not None:
+                    from eyecore._remote_data import ensure_db
+                    gz = ensure_db(
+                        self._app_name, self._remote_url, gz, self._remote_sha256
+                    )
+                if not gz.exists():
                     raise FileNotFoundError(
                         f"Database not found: {self._gz_path}\n"
                         "Run: python scripts/bake.py"
                     )
-                path = decompress_to_cache(self._gz_path, self._app_name)
+                path = decompress_to_cache(gz, self._app_name)
             else:
                 path = self._db_path  # type: ignore[assignment]
             self._conn = sqlite3.connect(str(path), check_same_thread=False)

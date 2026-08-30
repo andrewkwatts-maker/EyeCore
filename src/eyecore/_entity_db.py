@@ -26,9 +26,16 @@ class EntityDB:
         app_name: str,
         gz_path: Path,
         default_corpuses: list[dict] | None = None,
+        remote_url: str | None = None,
+        remote_sha256: str | None = None,
     ) -> None:
         self._app_name = app_name
-        self._base = BaseDB(app_name, gz_path=gz_path)
+        self._base = BaseDB(
+            app_name,
+            gz_path=gz_path,
+            remote_url=remote_url,
+            remote_sha256=remote_sha256,
+        )
         self._graph: TopicGraph | None = None
         self._corpus: CorpusManager | None = None
         self._default_corpuses = default_corpuses
@@ -48,6 +55,36 @@ class EntityDB:
                 default_registry=self._default_corpuses,
             )
         return self._corpus
+
+    # ── Delta sync ────────────────────────────────────────────────────────────
+
+    def sync_deltas(
+        self,
+        project_id: str,
+        collections: list[str],
+        collection_types: dict[str, str] | None = None,
+        api_key: str = "",
+    ) -> int:
+        """Pull documents updated in Firestore since the last bake/sync and
+        upsert them locally. Returns the number of entities applied.
+
+        The baked snapshot must carry a ``meta.generated_at`` row (written by
+        the bake scripts); subsequent syncs advance ``meta.last_sync``.
+        """
+        from datetime import datetime, timezone
+
+        from eyecore._remote_data import apply_deltas, fetch_deltas, get_meta
+
+        conn = self._base.conn
+        since = get_meta(conn, "last_sync") or get_meta(conn, "generated_at")
+        if not since:
+            raise RuntimeError(
+                "This database predates delta support — re-bake with a "
+                "scripts/bake.py that writes meta.generated_at."
+            )
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        docs = fetch_deltas(project_id, collections, since, api_key)
+        return apply_deltas(conn, docs, collection_types or {}, now)
 
     # ── Internal row helpers ──────────────────────────────────────────────────
 
