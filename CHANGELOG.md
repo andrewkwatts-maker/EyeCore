@@ -3,6 +3,25 @@
 All notable changes to `eyecore` are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/); versioning: SemVer.
 
+## [1.2.0] — unreleased
+
+### Added
+- `EntityDB(type_aliases=...)` and `EntityDB.type_variants()`. A published
+  snapshot is an immutable release asset, so a type typo baked into it cannot
+  be edited away; a package can now declare the spellings its snapshot really
+  contains and `by_type`/`count`/`get_random`/`get_all` match all of them.
+- `apply_deltas(..., type_fixes=None)` and `EntityDB.sync_deltas(..., type_fixes=None)`
+  normalise a misspelt upstream `type` onto its canonical form, mirroring the
+  bake scripts' `TYPE_FIXES`. Without it every `Refresh()` reintroduces, one
+  document at a time, the typo the bake removes.
+
+### Changed
+- `apply_deltas` writes the resolved type back into the stored JSON, so `data`
+  and the indexed `type` column agree — as the bake scripts already do.
+- `ensure_db` hashes the download as it streams rather than re-reading the
+  whole file (snapshots reach ~58 MB), and compares digests case-insensitively.
+  A mismatch still raises and leaves no file at either candidate location.
+
 ## [1.1.0] — 2026-08-30
 
 ### Added

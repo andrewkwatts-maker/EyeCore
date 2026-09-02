@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "eyecore"
-version = "1.1.0"
+version = "1.2.0"
 description = "Core data retrieval and organisation library â€” SQLite DB, topic graph, corpus management, and LLM integration"
 readme = "README.md"
 requires-python = ">=3.10"

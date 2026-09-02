@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import gzip
 import hashlib
+import json
 import sqlite3
 from pathlib import Path
 
 import pytest
 
 from eyecore import GRAPH_SCHEMA
+from eyecore._compress import cache_dir
 from eyecore._remote_data import (
     META_SCHEMA,
     apply_deltas,
@@ -104,6 +106,26 @@ def test_apply_deltas_upserts_and_stamps_sync():
     assert hit[0] == "zeus"
 
 
+def test_apply_deltas_normalises_typed_typos():
+    """A misspelt upstream type is folded onto its canonical form, in both the
+    indexed column and the stored JSON, so Refresh() cannot reintroduce a typo
+    the bake scripts normalise away."""
+    conn = _make_conn()
+    docs = [("heroes", {"id": "achilles", "name": "Achilles", "type": "heroe"})]
+    apply_deltas(conn, docs, {"heroes": "hero"}, "2026-09-03T00:00:00Z",
+                 {"heroe": "hero"})
+    row = conn.execute("SELECT type, data FROM entities WHERE id='achilles'").fetchone()
+    assert row[0] == "hero"
+    assert json.loads(row[1])["type"] == "hero"
+
+    # Without the fix map the upstream spelling is stored verbatim.
+    apply_deltas(conn, [("heroes", {"id": "hector", "name": "Hector", "type": "heroe"})],
+                 {"heroes": "hero"}, "2026-09-03T00:00:00Z")
+    assert conn.execute(
+        "SELECT type FROM entities WHERE id='hector'"
+    ).fetchone()[0] == "heroe"
+
+
 def test_search_text_matches_bake_mapping():
     e = {"name": "Zeus", "mythology": "Greek", "description": "Sky father",
          "domains": ["sky"], "titles": ["King of the Gods"]}
@@ -149,6 +171,56 @@ def test_ensure_db_downloads_and_verifies(tmp_path: Path, monkeypatch):
     with pytest.raises(OSError, match="Checksum mismatch"):
         ensure_db("test-app", "http://example/z.db.gz", bad_dest, sha256="0" * 64)
     assert not bad_dest.exists()
+
+
+def test_ensure_db_mismatch_caches_nothing_anywhere(tmp_path: Path, monkeypatch):
+    """A bad download must not survive at the destination *or* in the user
+    cache fallback — a cached corrupt snapshot would short-circuit every later
+    call and never be re-verified."""
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "cache"))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    payload = gzip.compress(b"truncated snapshot")
+
+    class FakeResponse:
+        def __init__(self):
+            self._data = payload
+        def read(self, n=-1):
+            d, self._data = self._data, b""
+            return d
+        def __enter__(self):
+            return self
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda req, timeout=0: FakeResponse())
+    dest = tmp_path / "pkg" / "_data" / "w.db.gz"
+    wrong = hashlib.sha256(b"a different snapshot entirely").hexdigest()
+    with pytest.raises(OSError, match="Checksum mismatch"):
+        ensure_db("mismatch-app", "http://example/w.db.gz", dest, sha256=wrong)
+    assert not dest.exists()
+    assert not (cache_dir("mismatch-app") / "w.db.gz").exists()
+
+
+def test_ensure_db_accepts_uppercase_digest(tmp_path: Path, monkeypatch):
+    """Digests are compared case-insensitively — hex case is not meaningful."""
+    payload = gzip.compress(b"database bytes")
+
+    class FakeResponse:
+        def __init__(self):
+            self._data = payload
+        def read(self, n=-1):
+            d, self._data = self._data, b""
+            return d
+        def __enter__(self):
+            return self
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda req, timeout=0: FakeResponse())
+    dest = tmp_path / "upper.db.gz"
+    out = ensure_db("test-app", "http://example/upper.db.gz", dest,
+                    sha256=hashlib.sha256(payload).hexdigest().upper())
+    assert out.read_bytes() == payload
 
 
 # ── fetch_deltas (offline behaviour) ──────────────────────────────────────────

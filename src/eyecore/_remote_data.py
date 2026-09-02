@@ -41,6 +41,14 @@ def ensure_db(app_name: str, url: str, dest_path: Path, sha256: str | None = Non
     Tries *dest_path* (normally the package's ``_data/`` dir); if that
     location is not writable (system site-packages), falls back to the user
     cache dir. An existing file at either location short-circuits.
+
+    When *sha256* is given (packages declare their snapshot's digest next to
+    its ``remote_url``) the download is hashed as it streams and verified
+    before anything is moved into place. A mismatch raises and leaves *no*
+    file behind at either location, so a truncated or substituted asset can
+    never be cached and then trusted forever by later runs. Without a digest
+    the only integrity check is the gzip magic number, which a truncated
+    download passes.
     """
     if dest_path.exists():
         return dest_path
@@ -52,13 +60,22 @@ def ensure_db(app_name: str, url: str, dest_path: Path, sha256: str | None = Non
     tmp = Path(tmp_name)
     try:
         req = urllib.request.Request(url, headers={"User-Agent": f"eyecore/{app_name}"})
+        # Hash while streaming — snapshots run to tens of MB, so never hold a
+        # second full copy in memory just to digest it.
+        digest = hashlib.sha256()
         with urllib.request.urlopen(req, timeout=120) as resp, open(tmp_fd, "wb") as out:
-            shutil.copyfileobj(resp, out)
+            while True:
+                chunk = resp.read(1 << 20)
+                if not chunk:
+                    break
+                digest.update(chunk)
+                out.write(chunk)
         if sha256:
-            digest = hashlib.sha256(tmp.read_bytes()).hexdigest()
-            if digest != sha256:
+            expected = sha256.strip().lower()
+            actual = digest.hexdigest()
+            if actual != expected:
                 raise OSError(
-                    f"Checksum mismatch for {url}: expected {sha256}, got {digest}"
+                    f"Checksum mismatch for {url}: expected {expected}, got {actual}"
                 )
         # Sanity: must be a gzip file, not an HTML error page.
         with gzip.open(tmp, "rb") as gz:
@@ -245,16 +262,28 @@ def apply_deltas(
     docs: list[tuple[str, dict]],
     collection_types: dict[str, str],
     now_iso: str,
+    type_fixes: dict[str, str] | None = None,
 ) -> int:
     """Upsert delta documents into the shared ``entities``/``entities_fts``
     schema and record the sync time in ``meta.last_sync``. Returns the number
-    of rows applied."""
+    of rows applied.
+
+    *type_fixes* maps a misspelt upstream ``type`` onto its canonical form,
+    mirroring the bake scripts' ``TYPE_FIXES``. Without it a typo that the
+    bake normalises away would be reintroduced, one delta at a time, by every
+    Refresh().
+    """
     applied = 0
     for coll, e in docs:
         ent_id = str(e.get("id") or "")
         if not ent_id:
             continue
         ent_type = e.get("type") or collection_types.get(coll, coll.rstrip("s"))
+        if type_fixes:
+            ent_type = type_fixes.get(ent_type, ent_type)
+        # Keep the stored JSON agreeing with the indexed column, as the bake
+        # scripts do — consumers read the type back out of ``data``.
+        e["type"] = ent_type
         name = _safe_str(e.get("name")) or ent_id
         mythology = _safe_str(
             e.get("mythology") or e.get("primaryMythology") or ""

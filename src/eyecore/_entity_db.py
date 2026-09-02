@@ -28,6 +28,7 @@ class EntityDB:
         default_corpuses: list[dict] | None = None,
         remote_url: str | None = None,
         remote_sha256: str | None = None,
+        type_aliases: dict[str, tuple[str, ...]] | None = None,
     ) -> None:
         self._app_name = app_name
         self._base = BaseDB(
@@ -39,6 +40,27 @@ class EntityDB:
         self._graph: TopicGraph | None = None
         self._corpus: CorpusManager | None = None
         self._default_corpuses = default_corpuses
+        self._type_aliases = type_aliases or {}
+
+    # ── Entity type spellings ─────────────────────────────────────────────────
+
+    def type_variants(self, entity_type: str) -> tuple[str, ...]:
+        """Every spelling of *entity_type* that may appear in the snapshot.
+
+        A snapshot baked before a type typo was fixed still stores the typo,
+        and the snapshot is a published release asset that cannot be edited in
+        place. Declaring the alias here keeps those rows reachable from the
+        canonical type until a re-bake replaces the asset.
+        """
+        variants = self._type_aliases.get(entity_type)
+        if not variants:
+            return (entity_type,)
+        return tuple(dict.fromkeys((entity_type, *variants)))
+
+    def _type_clause(self, entity_type: str) -> tuple[str, tuple[str, ...]]:
+        """SQL predicate + bind params matching every spelling of a type."""
+        variants = self.type_variants(entity_type)
+        return f"type IN ({','.join('?' * len(variants))})", variants
 
     # ── Lazy singletons ───────────────────────────────────────────────────────
 
@@ -64,6 +86,7 @@ class EntityDB:
         collections: list[str],
         collection_types: dict[str, str] | None = None,
         api_key: str = "",
+        type_fixes: dict[str, str] | None = None,
     ) -> int:
         """Pull documents updated in Firestore since the last bake/sync and
         upsert them locally. Returns the number of entities applied.
@@ -84,7 +107,7 @@ class EntityDB:
             )
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         docs = fetch_deltas(project_id, collections, since, api_key)
-        return apply_deltas(conn, docs, collection_types or {}, now)
+        return apply_deltas(conn, docs, collection_types or {}, now, type_fixes)
 
     # ── Internal row helpers ──────────────────────────────────────────────────
 
@@ -169,15 +192,16 @@ class EntityDB:
 
     def by_type(self, entity_type: str, mythology: str | None = None, limit: int = 500) -> list[dict]:
         """Return all entities of a given type, optionally filtered by mythology."""
+        clause, types = self._type_clause(entity_type)
         if mythology:
             rows = self._base.fetchall(
-                "SELECT data FROM entities WHERE type = ? AND lower(mythology) = lower(?) LIMIT ?",
-                (entity_type, mythology, limit),
+                f"SELECT data FROM entities WHERE {clause} AND lower(mythology) = lower(?) LIMIT ?",
+                (*types, mythology, limit),
             )
         else:
             rows = self._base.fetchall(
-                "SELECT data FROM entities WHERE type = ? LIMIT ?",
-                (entity_type, limit),
+                f"SELECT data FROM entities WHERE {clause} LIMIT ?",
+                (*types, limit),
             )
         return self._rows_data(rows)
 
@@ -192,22 +216,25 @@ class EntityDB:
     def count(self, entity_type: str | None = None) -> int:
         """Count entities, optionally filtered by type."""
         if entity_type:
+            clause, types = self._type_clause(entity_type)
             return self._base.fetchone(
-                "SELECT COUNT(*) FROM entities WHERE type = ?", (entity_type,)
+                f"SELECT COUNT(*) FROM entities WHERE {clause}", types
             )[0]
         return self._base.fetchone("SELECT COUNT(*) FROM entities")[0]
 
     def get_random(self, entity_type: str | None = None, mythology: str | None = None) -> dict | None:
         """Return a random entity, optionally filtered by type and/or mythology."""
+        clause, types = self._type_clause(entity_type) if entity_type else ("", ())
         if entity_type and mythology:
             row = self._base.fetchone(
-                "SELECT data FROM entities WHERE type=? AND lower(mythology)=lower(?) ORDER BY RANDOM() LIMIT 1",
-                (entity_type, mythology),
+                f"SELECT data FROM entities WHERE {clause} AND lower(mythology)=lower(?) "
+                "ORDER BY RANDOM() LIMIT 1",
+                (*types, mythology),
             )
         elif entity_type:
             row = self._base.fetchone(
-                "SELECT data FROM entities WHERE type=? ORDER BY RANDOM() LIMIT 1",
-                (entity_type,),
+                f"SELECT data FROM entities WHERE {clause} ORDER BY RANDOM() LIMIT 1",
+                types,
             )
         elif mythology:
             row = self._base.fetchone(
@@ -259,14 +286,15 @@ class EntityDB:
 
     def get_all(self, entity_type: str | None = None, mythology: str | None = None) -> list[dict]:
         """Return every matching entity with no row limit. Large result sets possible."""
+        clause, types = self._type_clause(entity_type) if entity_type else ("", ())
         if entity_type and mythology:
             rows = self._base.fetchall(
-                "SELECT data FROM entities WHERE type=? AND lower(mythology)=lower(?)",
-                (entity_type, mythology),
+                f"SELECT data FROM entities WHERE {clause} AND lower(mythology)=lower(?)",
+                (*types, mythology),
             )
         elif entity_type:
             rows = self._base.fetchall(
-                "SELECT data FROM entities WHERE type=?", (entity_type,)
+                f"SELECT data FROM entities WHERE {clause}", types
             )
         elif mythology:
             rows = self._base.fetchall(
