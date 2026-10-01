@@ -44,7 +44,7 @@ Issues = "https://github.com/andrewkwatts-maker/EyeCore/issues"
 [tool.maturin]
 python-source = "src"
 module-name = "eyecore._core"
-features = ["pyo3/extension-module"]
+features = ["extension-module"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
