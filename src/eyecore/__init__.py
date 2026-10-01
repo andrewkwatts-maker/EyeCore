@@ -21,6 +21,8 @@ Feed infrastructure (requires eyecore[feed]):
 """
 from __future__ import annotations
 
+import hashlib
+
 try:
     from ._core import sha256_hex, score_text, fuzzy_match as _fuzzy_match
     _RUST_CORE = True
@@ -28,10 +30,7 @@ except ImportError:
     _RUST_CORE = False
 
     def sha256_hex(data: bytes) -> str:
-        h: int = 5381
-        for b in data:
-            h = ((h * 33) + b) & 0xFFFFFFFFFFFFFFFF
-        return format(h, "016x")
+        return hashlib.sha256(data).hexdigest()
 
     def score_text(haystack: str, query: str) -> float:
         h, q = haystack.lower(), query.lower()
@@ -41,6 +40,8 @@ except ImportError:
             return 1000.0
         if q in h:
             return 500.0
+        if _fuzzy_match(h, q):
+            return 40.0
         return 0.0
 
     def _fuzzy_match(text: str, pattern: str) -> bool:
