@@ -5,7 +5,27 @@ edition = "2021"
 
 [lib]
 name = "_core"
-crate-type = ["cdylib"]
+# `rlib` alongside `cdylib` so the crate is a Rust library too, and so
+# `cargo test` has something to link. It was `cdylib` only, which meant no
+# other crate could depend on it and the scoring logic could not be tested
+# outside a Python interpreter -- which is why it had drifted from the Python
+# fallback unnoticed.
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# `python` builds the PyO3 bindings and links libpython, which is what
+# `cargo test` needs. `extension-module` additionally tells PyO3 to leave the
+# CPython symbols undefined -- required to build a wheel, fatal for a test
+# binary, which cannot then load.
+#
+# `pyo3` was declared with `features = ["extension-module"]` hard-coded and
+# there was no `[features]` table at all, so the two could not be separated.
+# Empty by default: the scoring helpers are ordinary Rust and must be testable
+# with no interpreter present.
+default = []
+python = ["dep:pyo3"]
+extension-module = ["python", "pyo3/extension-module"]
 
 [dependencies]
-pyo3 = { version = "0.28", features = ["extension-module"] }
+pyo3 = { version = "0.28", optional = true }
+sha2 = "0.10"
